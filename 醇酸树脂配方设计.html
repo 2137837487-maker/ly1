@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醇酸树脂配方设计小程序</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+
+        .header { text-align: center; padding: 40px 20px 30px; }
+        .header h1 { font-size: 2em; color: #fff; margin-bottom: 8px; }
+        .header .subtitle { color: #8ec5fc; font-size: 1em; letter-spacing: 2px; }
+        .header .divider { width: 80px; height: 3px; background: linear-gradient(90deg, #8ec5fc, #e0c3fc); margin: 16px auto 0; border-radius: 2px; }
+
+        /* 步骤指示器 */
+        .steps-indicator { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 30px 0 40px; flex-wrap: wrap; }
+        .step-dot { display: flex; align-items: center; gap: 6px; }
+        .step-dot .circle { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.4); transition: all 0.4s ease; }
+        .step-dot .label { font-size: 12px; color: rgba(255,255,255,0.35); transition: all 0.4s ease; }
+        .step-dot.active .circle { background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea; color: #fff; box-shadow: 0 0 20px rgba(102,126,234,0.4); }
+        .step-dot.active .label { color: #fff; }
+        .step-dot.done .circle { background: #4caf50; border-color: #4caf50; color: #fff; }
+        .step-dot.done .label { color: #81c784; }
+        .step-arrow { color: rgba(255,255,255,0.2); font-size: 16px; margin: 0 2px; }
+
+        /* 卡片 */
+        .card { background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; margin-bottom: 24px; animation: fadeInUp 0.5s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .card-title { font-size: 1.25em; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .card-desc { color: rgba(255,255,255,0.5); font-size: 0.9em; margin-bottom: 24px; }
+
+        /* 油度滑块区域 */
+        .slider-area { padding: 10px 0; }
+        .slider-display { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin-bottom: 20px; }
+        .slider-display .oil-value { font-size: 3em; font-weight: 700; color: #8ec5fc; line-height: 1; }
+        .slider-display .oil-unit { font-size: 1.2em; color: rgba(255,255,255,0.4); }
+        .slider-display .oil-category { font-size: 1em; color: #ffb74d; font-weight: 600; margin-left: 12px; padding: 4px 14px; background: rgba(255,152,0,0.15); border-radius: 20px; }
+
+        .slider-track-wrapper { position: relative; padding: 0 2px; }
+        .slider-labels { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.78em; color: rgba(255,255,255,0.3); }
+        .slider-labels span { text-align: center; flex: 1; }
+        .slider-labels span.zone-label { color: rgba(255,255,255,0.5); font-weight: 600; }
+
+        input[type="range"] {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 8px; border-radius: 4px; outline: none;
+            background: linear-gradient(90deg, #667eea 0%, #667eea 25%, #e0c3fc 25%, #e0c3fc 55%, #ffb74d 55%, #ffb74d 100%);
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #fff; border: 3px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer; transition: border-color 0.3s;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #fff; border: 3px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
+        .slider-input-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; }
+        .slider-input-row label { font-size: 0.9em; color: rgba(255,255,255,0.5); }
+        .slider-input-row input[type="number"] {
+            width: 80px; padding: 8px 12px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08);
+            color: #8ec5fc; font-size: 1em; font-weight: 600; text-align: center; outline: none;
+        }
+        .slider-input-row input[type="number"]:focus { border-color: #667eea; }
+
+        .oil-info-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 24px; }
+        .oil-info-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; text-align: center; transition: all 0.3s; }
+        .oil-info-card.active { background: rgba(102,126,234,0.1); border-color: rgba(102,126,234,0.3); }
+        .oil-info-card .info-label { font-size: 0.75em; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+        .oil-info-card .info-value { font-size: 0.95em; color: #fff; font-weight: 600; }
+
+        /* 选项网格 */
+        .options-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .option-card { background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; user-select: none; }
+        .option-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(102,126,234,0.4); transform: translateY(-2px); }
+        .option-card.selected { background: rgba(102,126,234,0.15); border-color: #667eea; box-shadow: 0 0 24px rgba(102,126,234,0.2); }
+        .option-card.selected::after { content: '\2713'; position: absolute; top: 10px; right: 14px; color: #667eea; font-weight: 700; font-size: 1.1em; }
+        .option-card .opt-name { font-size: 1em; color: #fff; font-weight: 600; margin-bottom: 6px; }
+        .option-card .opt-detail { font-size: 0.82em; color: rgba(255,255,255,0.45); line-height: 1.6; }
+        .option-card .opt-tag { display: inline-block; background: rgba(102,126,234,0.2); color: #8ec5fc; padding: 2px 10px; border-radius: 20px; font-size: 0.76em; margin-top: 8px; }
+
+        /* 按钮 */
+        .btn-row { display: flex; justify-content: space-between; margin-top: 28px; gap: 12px; }
+        .btn { padding: 12px 32px; border: none; border-radius: 10px; font-size: 0.95em; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .btn-prev { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-prev:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .btn-next { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
+        .btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+        .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-reset { background: rgba(255,82,82,0.15); color: #ff8a80; border: 1px solid rgba(255,82,82,0.2); }
+        .btn-reset:hover { background: rgba(255,82,82,0.25); }
+
+        /* 结果页 */
+        .result-section { display: none; }
+        .result-section.show { display: block; }
+        .result-header { text-align: center; padding: 20px 0 30px; }
+        .result-header h2 { font-size: 1.5em; color: #fff; margin-bottom: 6px; }
+        .result-header p { color: rgba(255,255,255,0.5); }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .summary-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; text-align: center; }
+        .summary-item .s-label { font-size: 0.8em; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+        .summary-item .s-value { font-size: 1.05em; color: #8ec5fc; font-weight: 600; }
+
+        .formula-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 20px 0; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+        .formula-table thead th { background: rgba(102,126,234,0.2); color: #8ec5fc; padding: 12px 16px; text-align: left; font-size: 0.88em; font-weight: 600; }
+        .formula-table tbody td { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.92em; }
+        .formula-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+        .row-num { color: rgba(255,255,255,0.3); font-size: 0.85em; }
+        .mat-name { color: #fff; font-weight: 500; }
+        .mat-amount { color: #81c784; font-weight: 700; font-size: 1.05em; }
+        .mat-unit { color: rgba(255,255,255,0.35); font-size: 0.85em; }
+        .mat-note { color: rgba(255,255,255,0.4); font-size: 0.85em; }
+
+        .process-box { background: rgba(255,152,0,0.08); border: 1px solid rgba(255,152,0,0.2); border-radius: 12px; padding: 24px; margin: 24px 0; }
+        .process-box h3 { color: #ffb74d; font-size: 1.05em; margin-bottom: 14px; }
+        .process-list { list-style: none; }
+        .process-list li { padding: 7px 0; color: rgba(255,255,255,0.7); font-size: 0.9em; }
+        .process-list li::before { content: '\25B8 '; color: #ffb74d; }
+
+        .use-tag { display: inline-block; background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)); border: 1px solid rgba(102,126,234,0.3); color: #b39ddb; padding: 6px 16px; border-radius: 20px; font-size: 0.88em; margin: 4px; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.4em; }
+            .card { padding: 20px 16px; }
+            .options-grid { grid-template-columns: 1fr; }
+            .step-dot .label { display: none; }
+            .btn-row { flex-direction: column; }
+            .btn { width: 100%; text-align: center; }
+            .oil-info-cards { grid-template-columns: 1fr; }
+            .slider-display .oil-value { font-size: 2.2em; }
+        }
+
+        @media print {
+            body { background: #fff; color: #333; }
+            .btn-row { display: none; }
+            .card { border: 1px solid #ddd; background: #fff; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>&#x1F9EA; 醇酸树脂配方设计</h1>
+        <div class="subtitle">自干型 &#xB7; 交互式配方生成</div>
+        <div class="divider"></div>
+    </div>
+
+    <div class="steps-indicator" id="stepsIndicator">
+        <div class="step-dot active" data-step="1"><div class="circle">1</div><div class="label">油度</div></div>
+        <span class="step-arrow">&#x2192;</span>
+        <div class="step-dot" data-step="2"><div class="circle">2</div><div class="label">植物油</div></div>
+        <span class="step-arrow">&#x2192;</span>
+        <div class="step-dot" data-step="3"><div class="circle">3</div><div class="label">多元酸</div></div>
+        <span class="step-arrow">&#x2192;</span>
+        <div class="step-dot" data-step="4"><div class="circle">4</div><div class="label">多元醇</div></div>
+        <span class="step-arrow">&#x2192;</span>
+        <div class="step-dot" data-step="5"><div class="circle">5</div><div class="label">结果</div></div>
+    </div>
+
+    <!-- Step 1: 油度调节 -->
+    <div class="card" id="step1">
+        <div class="card-title">&#x1F6E2;&#xFE0F; 第一步：设定油度</div>
+        <div class="card-desc">拖动滑块或直接输入数值，自由调节油度（25%~70%），参数将自动计算</div>
+
+        <div class="slider-area">
+            <div class="slider-display">
+                <span class="oil-value" id="oilValueDisplay">40</span>
+                <span class="oil-unit">%</span>
+                <span class="oil-category" id="oilCategoryTag">中油度</span>
+            </div>
+
+            <div class="slider-track-wrapper">
+                <div class="slider-labels">
+                    <span>25%</span>
+                    <span class="zone-label" id="zoneShort">短油度</span>
+                    <span class="zone-label" id="zoneMid">中油度</span>
+                    <span class="zone-label" id="zoneLong">长油度</span>
+                    <span>70%</span>
+                </div>
+                <input type="range" id="oilSlider" min="25" max="70" step="1" value="40">
+            </div>
+
+            <div class="slider-input-row">
+                <label>精确输入：</label>
+                <input type="number" id="oilInput" min="25" max="70" step="0.5" value="40">
+                <label>%</label>
+            </div>
+        </div>
+
+        <div class="oil-info-cards" id="oilInfoCards">
+            <div class="oil-info-card" id="infoSolid">
+                <div class="info-label">设计固含</div>
+                <div class="info-value">55%</div>
+            </div>
+            <div class="oil-info-card" id="infoAcidLimit">
+                <div class="info-label">酸值控制</div>
+                <div class="info-value">&le;10 mgKOH/g</div>
+            </div>
+            <div class="oil-info-card" id="infoUse">
+                <div class="info-label">参考用途</div>
+                <div class="info-value">通用工业漆</div>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <div></div>
+            <button class="btn btn-next" id="btn1Next">下一步 &#x2192;</button>
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="card hidden" id="step2">
+        <div class="card-title">&#x1F331; 第二步：选择植物油</div>
+        <div class="card-desc" id="oilDesc"></div>
+        <div class="options-grid" id="oilOptions"></div>
+        <div class="btn-row">
+            <button class="btn btn-prev" id="btn2Prev">&#x2190; 上一步</button>
+            <button class="btn btn-next" id="btn2Next" disabled>下一步 &#x2192;</button>
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="card hidden" id="step3">
+        <div class="card-title">&#x2697;&#xFE0F; 第三步：选择多元酸</div>
+        <div class="card-desc">多元酸提供树脂刚性链段，影响硬度和耐化学品性</div>
+        <div class="options-grid" id="acidOptions"></div>
+        <div class="btn-row">
+            <button class="btn btn-prev" id="btn3Prev">&#x2190; 上一步</button>
+            <button class="btn btn-next" id="btn3Next" disabled>下一步 &#x2192;</button>
+        </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="card hidden" id="step4">
+        <div class="card-title">&#x1F9EB; 第四步：选择多元醇</div>
+        <div class="card-desc">多元醇是树脂骨架组分，官能度影响交联密度</div>
+        <div class="options-grid" id="polyolOptions"></div>
+        <div class="btn-row">
+            <button class="btn btn-prev" id="btn4Prev">&#x2190; 上一步</button>
+            <button class="btn btn-next" id="btn4Next" disabled>生成配方 &#x26A1;</button>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-section" id="resultSection">
+        <div class="card">
+            <div class="result-header">
+                <h2>&#x1F4CB; 配方设计结果</h2>
+                <p id="resultSubtitle"></p>
+            </div>
+            <div class="summary-grid" id="summaryGrid"></div>
+            <h3 style="color:#fff; margin-bottom:14px; font-size:1.05em;">&#x1F4E6; 原料配比</h3>
+            <table class="formula-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px">序号</th>
+                        <th>原料名称</th>
+                        <th style="width:100px">用量</th>
+                        <th style="width:80px">单位</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody id="formulaBody"></tbody>
+            </table>
+            <div class="process-box">
+                <h3>&#x2699;&#xFE0F; 工艺控制参数</h3>
+                <ul class="process-list" id="processList"></ul>
+            </div>
+            <div style="margin-top:20px;">
+                <h3 style="color:#fff; margin-bottom:10px; font-size:1.05em;">&#x1F3AF; 适用用途</h3>
+                <div id="useTags"></div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-reset" id="btnReset">重新设计</button>
+                <button class="btn btn-next" id="btnPrint">&#x1F5A8;&#xFE0F; 打印配方</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ===== 数据库 =====
+    var polyols = {
+        "\u7518\u6CB9": { mw: 92.09, f: 3, desc: "\u6700\u5E38\u7528\u4E09\u5143\u9187\uFF0C\u6210\u672C\u4F4E\uFF0C\u901A\u7528\u6027\u5F3A" },
+        "\u5B63\u620A\u56DB\u9187": { mw: 136.15, f: 4, desc: "\u56DB\u5B98\u80FD\u5EA6\uFF0C\u4EA4\u8054\u5BC6\u5EA6\u9AD8\uFF0C\u786C\u5EA6\u597D" },
+        "\u4E09\u7F9F\u7532\u57FA\u4E19\u70F7(TMP)": { mw: 134.18, f: 3, desc: "\u652F\u94FE\u7ED3\u6784\uFF0C\u8010\u6C34\u6027\u548C\u8010\u5019\u6027\u4F18" },
+        "\u4E19\u4E8C\u9187": { mw: 76.09, f: 2, desc: "\u4E8C\u5B98\u80FD\u5EA6\uFF0C\u67D4\u97E7\u6027\u597D" },
+        "\u4E59\u4E8C\u9187": { mw: 62.07, f: 2, desc: "\u4E8C\u5B98\u80FD\u5EA6\uFF0C\u5206\u5B50\u91CF\u6700\u5C0F" }
+    };
+
+    var acids = {
+        "\u90BB\u82EF\u4E8C\u7532\u9178\u916E(\u82EF\u916E)": { mw: 148.12, f: 2, desc: "\u6700\u5E38\u7528\u4E8C\u5143\u9178\uFF0C\u521A\u6027\u597D\uFF0C\u6210\u672C\u4F4E", correct: 1.00 },
+        "\u95F4\u82EF\u4E8C\u7532\u9178(IPA)": { mw: 166.13, f: 2, desc: "\u8010\u6C34\u8010\u5019\u6027\u4F18\u4E8E\u82EF\u916E", correct: 1.05 },
+        "\u5DF1\u4E8C\u9178(ADA)": { mw: 146.14, f: 2, desc: "\u8102\u80AA\u65CF\u4E8C\u5143\u9178\uFF0C\u67D4\u97E7\u6027\u597D", correct: 0.95 },
+        "\u504F\u82EF\u4E09\u9178\u916E(TMA)": { mw: 192, f: 3, desc: "\u4E09\u5B98\u80FD\u5EA6\uFF0C\u63D0\u9AD8\u4EA4\u8054\u548C\u786C\u5EA6", correct: 0.88 }
+    };
+
+    var oilClass = {
+        "\u77ED\u6CB9\u5EA6": ["\u84D3\u9EBB\u6CB9", "\u6930\u5B50\u6CB9"],
+        "\u4E2D\u6CB9\u5EA6": ["\u8C46\u6CB9", "\u6850\u6CB9", "\u6CB9\u9178"],
+        "\u957F\u6CB9\u5EA6": ["\u4E9A\u9EBB\u6CB9", "\u6850\u6CB9", "\u8C46\u6CB9"]
+    };
+
+    // 基准数据点（用于插值）
+    // 短油度中心 ~32%, 中油度中心 ~50%, 长油度中心 ~63%
+    var baseDataPoints = [
+        { oil: 32, acid: 22.0, solvent: 64.5, acidLimit: 8, solid: 60, use: "\u6C28\u57FA\u70D8\u6F06\u3001\u5BB6\u7535\u91D1\u5C5E\u70E4\u6F06" },
+        { oil: 50, acid: 13.8, solvent: 69.5, acidLimit: 10, solid: 50, use: "\u6728\u5668\u9762\u6F06\u3001\u91D1\u5C5E\u9632\u9508\u9762\u6F06\u3001\u901A\u7528\u5DE5\u4E1A\u6F06" },
+        { oil: 63, acid: 10.5, solvent: 83.7, acidLimit: 12, solid: 55, use: "\u94A2\u7ED3\u6784\u9632\u9508\u5E95\u6F06\u3001\u6237\u5916\u9632\u8150\u5E95\u6F06" }
+    ];
+
+    var oilParams = {
+        "\u84D3\u9EBB\u6CB9": { saponification: 176, iodine: 86, desc: "\u542B\u7F9F\u57FA\u8102\u80AA\u9178\uFF0C\u81EA\u5E72\u6027\u597D" },
+        "\u6930\u5B50\u6CB9": { saponification: 258, iodine: 10, desc: "\u9971\u548C\u5EA6\u9AD8\uFF0C\u8272\u6D45\uFF0C\u4E0D\u6613\u6CDB\u9EC4" },
+        "\u8C46\u6CB9": { saponification: 190, iodine: 130, desc: "\u5E72\u6027\u6CB9\uFF0C\u6765\u6E90\u5E7F\u6CDB" },
+        "\u6850\u6CB9": { saponification: 195, iodine: 163, desc: "\u5171\u8F6D\u53CC\u952E\uFF0C\u5E72\u71E5\u6781\u5FEB" },
+        "\u6CB9\u9178": { saponification: 199, iodine: 90, desc: "\u5341\u516B\u78B3\u5355\u70EF\u9178\uFF0C\u67D4\u97E7\u6027\u597D" },
+        "\u4E9A\u9EBB\u6CB9": { saponification: 192, iodine: 178, desc: "\u9AD8\u7898\u503C\uFF0C\u6237\u5916\u8010\u4E45\u6027\u4F18" }
+    };
+
+    // ===== 状态 =====
+    var selection = { oilDegree: 40, grade: null, oil: null, acid: null, polyol: null };
+
+    var $ = function(id) { return document.getElementById(id); };
+
+    // ===== 插值计算 =====
+    function getGradeName(val) {
+        if (val <= 40) return "\u77ED\u6CB9\u5EA6";
+        if (val <= 55) return "\u4E2D\u6CB9\u5EA6";
+        return "\u957F\u6CB9\u5EA6";
+    }
+
+    function lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    // 根据油度值插值计算配方参数
+    function interpolateParams(oilVal) {
+        var pts = baseDataPoints;
+        var result = {};
+
+        if (oilVal <= pts[0].oil) {
+            // 短油度以下，用第一个点
+            result.acid = pts[0].acid;
+            result.solvent = pts[0].solvent;
+            result.acidLimit = pts[0].acidLimit;
+            result.solid = pts[0].solid;
+            result.use = pts[0].use;
+        } else if (oilVal <= pts[1].oil) {
+            // 短→中插值
+            var t = (oilVal - pts[0].oil) / (pts[1].oil - pts[0].oil);
+            result.acid = +lerp(pts[0].acid, pts[1].acid, t).toFixed(1);
+            result.solvent = +lerp(pts[0].solvent, pts[1].solvent, t).toFixed(1);
+            result.acidLimit = Math.round(lerp(pts[0].acidLimit, pts[1].acidLimit, t));
+            result.solid = Math.round(lerp(pts[0].solid, pts[1].solid, t));
+            result.use = t < 0.5 ? pts[0].use : pts[1].use;
+        } else if (oilVal <= pts[2].oil) {
+            // 中→长插值
+            var t = (oilVal - pts[1].oil) / (pts[2].oil - pts[1].oil);
+            result.acid = +lerp(pts[1].acid, pts[2].acid, t).toFixed(1);
+            result.solvent = +lerp(pts[1].solvent, pts[2].solvent, t).toFixed(1);
+            result.acidLimit = Math.round(lerp(pts[1].acidLimit, pts[2].acidLimit, t));
+            result.solid = Math.round(lerp(pts[1].solid, pts[2].solid, t));
+            result.use = t < 0.5 ? pts[1].use : pts[2].use;
+        } else {
+            // 长油度以上
+            result.acid = pts[2].acid;
+            result.solvent = pts[2].solvent;
+            result.acidLimit = pts[2].acidLimit;
+            result.solid = pts[2].solid;
+            result.use = pts[2].use;
+        }
+
+        return result;
+    }
+
+    // ===== 油度滑块更新 =====
+    function updateOilDegree(val) {
+        val = Math.max(25, Math.min(70, parseFloat(val) || 40));
+        selection.oilDegree = val;
+        selection.grade = getGradeName(val);
+
+        $("oilSlider").value = val;
+        $("oilInput").value = val;
+        $("oilValueDisplay").textContent = val % 1 === 0 ? val : val.toFixed(1);
+
+        // 更新类别标签
+        var catTag = $("oilCategoryTag");
+        catTag.textContent = selection.grade;
+        if (selection.grade === "\u77ED\u6CB9\u5EA6") { catTag.style.background = "rgba(102,126,234,0.2)"; catTag.style.color = "#8ec5fc"; }
+        else if (selection.grade === "\u4E2D\u6CB9\u5EA6") { catTag.style.background = "rgba(224,195,252,0.2)"; catTag.style.color = "#e0c3fc"; }
+        else { catTag.style.background = "rgba(255,183,77,0.2)"; catTag.style.color = "#ffb74d"; }
+
+        // 更新滑块thumb颜色
+        var thumbColor = selection.grade === "\u77ED\u6CB9\u5EA6" ? "#667eea" : selection.grade === "\u4E2D\u6CB9\u5EA6" ? "#e0c3fc" : "#ffb74d";
+        $("oilSlider").style.setProperty("--thumb-color", thumbColor);
+
+        // 更新信息卡片
+        var params = interpolateParams(val);
+        $("infoSolid").querySelector(".info-value").textContent = params.solid + "%";
+        $("infoAcidLimit").querySelector(".info-value").textContent = "\u2264" + params.acidLimit + " mgKOH/g";
+
+        var useShort = params.use.length > 12 ? params.use.substring(0, 12) + "..." : params.use;
+        $("infoUse").querySelector(".info-value").textContent = useShort;
+        $("infoUse").title = params.use;
+
+        // 高亮当前类别卡片
+        var cards = $("oilInfoCards").querySelectorAll(".oil-info-card");
+        for (var i = 0; i < cards.length; i++) cards[i].classList.add("active");
+    }
+
+    // ===== 渲染选项 =====
+    function renderOilOptions() {
+        var container = $("oilOptions");
+        var oils = oilClass[selection.grade];
+        $("oilDesc").textContent = "\u5F53\u524D\u6CB9\u5EA6\uFF1A" + selection.oilDegree + "%\uFF08" + selection.grade + "\uFF09";
+        var html = "";
+        for (var i = 0; i < oils.length; i++) {
+            var name = oils[i];
+            var p = oilParams[name];
+            html += '<div class="option-card" data-value="' + name + '">'
+                + '<div class="opt-name">' + name + '</div>'
+                + '<div class="opt-detail">' + p.desc + '</div>'
+                + '<div class="opt-detail" style="margin-top:4px">\u7682\u5316\u503C ' + p.saponification + ' \u00B7 \u7898\u503C ' + p.iodine + '</div>'
+                + '</div>';
+        }
+        container.innerHTML = html;
+        bindOptionClick(container, "oil");
+    }
+
+    function renderAcidOptions() {
+        var container = $("acidOptions");
+        var html = "";
+        var acidNames = Object.keys(acids);
+        for (var i = 0; i < acidNames.length; i++) {
+            var name = acidNames[i];
+            var info = acids[name];
+            html += '<div class="option-card" data-value="' + name + '">'
+                + '<div class="opt-name">' + name + '</div>'
+                + '<div class="opt-detail">' + info.desc + '</div>'
+                + '<div class="opt-tag">MW ' + info.mw + ' \u00B7 \u5B98\u80FD\u5EA6 ' + info.f + ' \u00B7 \u4FEE\u6B63\u7CFB\u6570 ' + info.correct + '</div>'
+                + '</div>';
+        }
+        container.innerHTML = html;
+        bindOptionClick(container, "acid");
+    }
+
+    function renderPolyolOptions() {
+        var container = $("polyolOptions");
+        var html = "";
+        var polyolNames = Object.keys(polyols);
+        for (var i = 0; i < polyolNames.length; i++) {
+            var name = polyolNames[i];
+            var info = polyols[name];
+            html += '<div class="option-card" data-value="' + name + '">'
+                + '<div class="opt-name">' + name + '</div>'
+                + '<div class="opt-detail">' + info.desc + '</div>'
+                + '<div class="opt-tag">MW ' + info.mw + ' \u00B7 \u5B98\u80FD\u5EA6 ' + info.f + '</div>'
+                + '</div>';
+        }
+        container.innerHTML = html;
+        bindOptionClick(container, "polyol");
+    }
+
+    // ===== 事件绑定 =====
+    function bindOptionClick(container, key) {
+        var cards = container.querySelectorAll(".option-card");
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].addEventListener("click", function() {
+                var siblings = this.parentNode.querySelectorAll(".option-card");
+                for (var j = 0; j < siblings.length; j++) siblings[j].classList.remove("selected");
+                this.classList.add("selected");
+                selection[key] = this.getAttribute("data-value");
+                if (key === "oil") $("btn2Next").disabled = false;
+                if (key === "acid") $("btn3Next").disabled = false;
+                if (key === "polyol") $("btn4Next").disabled = false;
+            });
+        }
+    }
+
+    // ===== 步骤导航 =====
+    function goStep(step) {
+        var steps = ["step1", "step2", "step3", "step4"];
+        for (var i = 0; i < steps.length; i++) $(steps[i]).classList.add("hidden");
+        $("step" + step).classList.remove("hidden");
+        $("resultSection").classList.remove("show");
+
+        var dots = document.querySelectorAll(".step-dot");
+        for (var i = 0; i < dots.length; i++) {
+            var s = parseInt(dots[i].getAttribute("data-step"));
+            dots[i].classList.remove("active", "done");
+            if (s < step) dots[i].classList.add("done");
+            if (s === step) dots[i].classList.add("active");
+        }
+
+        if (step === 2) renderOilOptions();
+        if (step === 3) renderAcidOptions();
+        if (step === 4) renderPolyolOptions();
+    }
+
+    // ===== 配方计算 =====
+    function calculateFormula() {
+        var params = interpolateParams(selection.oilDegree);
+        var acidInfo = acids[selection.acid];
+        var polyolInfo = polyols[selection.polyol];
+
+        var acidAmount = +(params.acid * acidInfo.correct).toFixed(2);
+        var polyolAmount = +(acidAmount * (acidInfo.f / polyolInfo.f) * (polyolInfo.mw / acidInfo.mw) * 0.95).toFixed(2);
+        var totalResin = +(selection.oilDegree + polyolAmount + acidAmount).toFixed(2);
+
+        return {
+            oil: selection.oilDegree, oilName: selection.oil,
+            acid: acidAmount, acidName: selection.acid,
+            polyol: polyolAmount, polyolName: selection.polyol,
+            solvent: params.solvent,
+            acidLimit: params.acidLimit,
+            targetSolid: params.solid + "%",
+            use: params.use,
+            totalResin: totalResin,
+            grade: selection.grade,
+            oilDegree: selection.oilDegree
+        };
+    }
+
+    // ===== 生成结果 =====
+    function generateResult() {
+        var r = calculateFormula();
+
+        var steps = ["step1", "step2", "step3", "step4"];
+        for (var i = 0; i < steps.length; i++) $(steps[i]).classList.add("hidden");
+        $("resultSection").classList.add("show");
+
+        var dots = document.querySelectorAll(".step-dot");
+        for (var i = 0; i < dots.length; i++) { dots[i].classList.remove("active"); dots[i].classList.add("done"); }
+
+        $("resultSubtitle").textContent = "\u6CB9\u5EA6 " + r.oilDegree + "%\uFF08" + r.grade + "\uFF09 \u00B7 " + r.oilName + " \u00B7 " + r.acidName + " \u00B7 " + r.polyolName;
+
+        $("summaryGrid").innerHTML =
+            '<div class="summary-item"><div class="s-label">\u6CB9\u5EA6</div><div class="s-value">' + r.oilDegree + '%</div></div>'
+            + '<div class="summary-item"><div class="s-label">\u6CB9\u5EA6\u7C7B\u578B</div><div class="s-value">' + r.grade + '</div></div>'
+            + '<div class="summary-item"><div class="s-label">\u690D\u7269\u6CB9</div><div class="s-value">' + r.oilName + '</div></div>'
+            + '<div class="summary-item"><div class="s-label">\u591A\u5143\u9178</div><div class="s-value">' + r.acidName.split("(")[0] + '</div></div>'
+            + '<div class="summary-item"><div class="s-label">\u591A\u5143\u9187</div><div class="s-value">' + r.polyolName.split("(")[0] + '</div></div>'
+            + '<div class="summary-item"><div class="s-label">\u8BBE\u8BA1\u56FA\u542B</div><div class="s-value">' + r.targetSolid + '</div></div>'
+            + '<div class="summary-item"><div class="s-label">\u6811\u8102\u603B\u91CF</div><div class="s-value">' + r.totalResin + ' \u4EFD</div></div>';
+
+        $("formulaBody").innerHTML =
+            '<tr><td class="row-num">1</td><td class="mat-name">' + r.oilName + '</td><td class="mat-amount">' + r.oil + '</td><td class="mat-unit">\u8D28\u91CF\u4EFD</td><td class="mat-note">\u6CB9\u5EA6 ' + r.oilDegree + '%\uFF0C\u4E3B\u8981\u8102\u80AA\u9178\u6765\u6E90</td></tr>'
+            + '<tr><td class="row-num">2</td><td class="mat-name">' + r.polyolName + '</td><td class="mat-amount">' + r.polyol + '</td><td class="mat-unit">\u8D28\u91CF\u4EFD</td><td class="mat-note">\u5B98\u80FD\u5EA6 ' + polyols[r.polyolName].f + '\uFF0CMW ' + polyols[r.polyolName].mw + '</td></tr>'
+            + '<tr><td class="row-num">3</td><td class="mat-name">' + r.acidName + '</td><td class="mat-amount">' + r.acid + '</td><td class="mat-unit">\u8D28\u91CF\u4EFD</td><td class="mat-note">\u4FEE\u6B63\u7CFB\u6570 ' + acids[r.acidName].correct + '</td></tr>'
+            + '<tr><td class="row-num">4</td><td class="mat-name">200#\u6EB6\u5242\u6CB9</td><td class="mat-amount">' + r.solvent + '</td><td class="mat-unit">\u8D28\u91CF\u4EFD</td><td class="mat-note">\u8C03\u6574\u56FA\u542B\u81F3 ' + r.targetSolid + '</td></tr>';
+
+        $("processList").innerHTML =
+            '<li>\u5DE5\u827A\u65B9\u6CD5\uFF1A\u6EB6\u5242\u6CD5\u56DE\u6D41\u5206\u6C34\u916F\u5316</li>'
+            + '<li>\u916F\u5316\u6E29\u5EA6\uFF1A200~230\u2103\uFF08\u9010\u6B65\u5347\u6E29\uFF09</li>'
+            + '<li>\u916F\u5316\u7EC8\u70B9\uFF1A\u9178\u503C \u2264' + r.acidLimit + ' mgKOH/g \u51FA\u9505</li>'
+            + '<li>\u7C98\u5EA6\u63A7\u5236\uFF1A\u52A0\u6C0F\u7BA1 8~12 \u79D2\uFF0825\u2103\uFF09</li>'
+            + '<li>\u5BF9\u7A00\u6E29\u5EA6\uFF1A\u2264120\u2103 \u52A0\u5165\u6EB6\u5242</li>'
+            + '<li>\u8FC7\u6EE4\u5305\u88C5\uFF1A120\u76EE\u6EE4\u7F51\u8FC7\u6EE4\u540E\u5305\u88C5</li>';
+
+        var uses = r.use.split("\u3001");
+        var tagsHtml = "";
+        for (var i = 0; i < uses.length; i++) tagsHtml += '<span class="use-tag">' + uses[i] + '</span>';
+        $("useTags").innerHTML = tagsHtml;
+    }
+
+    // ===== 重置 =====
+    function resetAll() {
+        selection = { oilDegree: 40, grade: null, oil: null, acid: null, polyol: null };
+        $("resultSection").classList.remove("show");
+        $("btn2Next").disabled = true;
+        $("btn3Next").disabled = true;
+        $("btn4Next").disabled = true;
+        updateOilDegree(40);
+        goStep(1);
+    }
+
+    // ===== 绑定事件 =====
+    $("oilSlider").addEventListener("input", function() { updateOilDegree(this.value); });
+    $("oilInput").addEventListener("input", function() { updateOilDegree(this.value); });
+    $("oilInput").addEventListener("change", function() { updateOilDegree(this.value); });
+
+    $("btn1Next").addEventListener("click", function() { goStep(2); });
+    $("btn2Prev").addEventListener("click", function() { goStep(1); });
+    $("btn2Next").addEventListener("click", function() { goStep(3); });
+    $("btn3Prev").addEventListener("click", function() { goStep(2); });
+    $("btn3Next").addEventListener("click", function() { goStep(4); });
+    $("btn4Prev").addEventListener("click", function() { goStep(3); });
+    $("btn4Next").addEventListener("click", function() { generateResult(); });
+    $("btnReset").addEventListener("click", function() { resetAll(); });
+    $("btnPrint").addEventListener("click", function() { window.print(); });
+
+    // ===== 初始化 =====
+    updateOilDegree(40);
+
+})();
+</script>
+
+</body>
+</html>
